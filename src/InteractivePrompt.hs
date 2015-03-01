@@ -73,41 +73,69 @@ printChoice (Just x) = do
 printChoice Nothing = putStrLn "Input argument invalid"
 
 
-dispatch :: Int -> Either String [String] -> IO()
-dispatch 1 (Right (url:filePath:_)) = do
+dispatch :: Int -> Maybe [String] -> IO()
+dispatch 1 (Just (url:filePath:_)) = do
                             createGPShowFromURL url filePath
                             putStrLn $ "Wrote JSON file of GP Show from URL " ++ url ++ " to file " ++ filePath
 
-dispatch 2 (Right (jsonFile1:jsonFile2:outputFilePath:_)) = do
+dispatch 2 (Just (jsonFile1:jsonFile2:outputFilePath:_)) = do
                             mergeGPShowJSONFiles jsonFile1 jsonFile2 outputFilePath
                             putStrLn $ "Merged JSON files : " ++ jsonFile1 ++ ", " ++ jsonFile2 ++ " into output file " ++ outputFilePath
 
-dispatch 3 (Right (urlFilePath:outputFilePath:_)) = do
+dispatch 3 (Just (urlFilePath:outputFilePath:_)) = do
                             createGPShowFromURLs urlFilePath outputFilePath
                             putStrLn $ "Created JSON file with shows from url file : " ++ urlFilePath ++ " into output file " ++ outputFilePath
-dispatch _ (Left x) = do putStrLn x
+dispatch _ Nothing = do putStrLn "No operation performed"
+
+
+data ArgType = InputFile | URL | OutputFile
+
+validateArg :: String -> ArgType -> IO(Bool)
+validateArg filePath InputFile = do
+                fileExists <- doesFileExist filePath
+                if fileExists then (putStrLn $ "Input file : " ++ filePath) else (putStrLn $ "Error : " ++ filePath ++ " does not exist")
+                return fileExists
+validateArg url URL = do
+                let urlGood = N.isAbsoluteURI url
+                if urlGood then (putStrLn $ "Input URL : " ++ url) else (putStrLn $ "Error : " ++ url ++ " is invalid")
+                return urlGood
+validateArg filePath OutputFile = do
+                let dir = takeDirectory filePath
+                dirGood <- doesDirectoryExist dir
+                if dirGood then (putStrLn $ "Output file : " ++ filePath) else (putStrLn $ "Error : " ++ filePath ++ " is invalid")
+                return dirGood
+
 
 
 
 -- todo: get rid of boilerplate
-getAdditionalArgs :: Int -> IO(Either String [String] )
+getAdditionalArgs :: Int -> IO(Maybe [String])
 getAdditionalArgs 1 = do
-            putStrLn "Provide URL followed by output file path"
-            args <- sequence [getLine, getLine]
-            let (url:filePath:_) = args
-            let urlGood = N.isAbsoluteURI url
-            let pred = urlGood
-            if pred then return (Right args) else return (Left "predicate failed")
+            putStrLn "Provide URL"
+            url <- getLine
+            putStrLn "Provide output file path"
+            outputFilePath <- getLine
+            let args = [url, outputFilePath]
+            validArgs <- zipWithM validateArg args [URL, OutputFile]
+            let predicate = and validArgs
+            if predicate then return (Just args) else return Nothing
 getAdditionalArgs 2 = do
-            putStrLn "Provide filepaths for first and second JSON file, and the filepath for the output result"
-            args <- sequence [getLine, getLine, getLine]
-            let (jsonFile1:jsonFile2:outputFile:_) = args
-            pred1 <- doesFileExist jsonFile1
-            pred2 <- doesFileExist jsonFile2
-            if pred1 && pred2 then return (Right args) else return (Left "predicate failed")
+            putStrLn "Provide filepath for the first JSON file"
+            jsonFile1 <- getLine
+            putStrLn "Provide filepath for the second JSON file"
+            jsonFile2 <- getLine
+            putStrLn "Provide output file path"
+            outputFilePath <- getLine
+            let args = [jsonFile1, jsonFile2, outputFilePath]
+            validArgs <- zipWithM validateArg args [InputFile, InputFile, OutputFile]
+            let predicate = and validArgs
+            if predicate then return (Just args) else return Nothing
 getAdditionalArgs 3 = do
-            putStrLn "Provide URL filepath and output file path"
-            args <- sequence [getLine, getLine]
-            let (urlFile:outputFile:_) = args
-            pred <- doesFileExist urlFile
-            if pred then return (Right args) else return (Left "predicate failed")
+            putStrLn "Provide filepath for URL file"
+            urlFile <- getLine
+            putStrLn "Provide output file path"
+            outputFilePath <- getLine
+            let args = [urlFile, outputFilePath]
+            validArgs <- zipWithM validateArg args [InputFile, OutputFile]
+            let predicate = and validArgs
+            if predicate then return (Just args) else return Nothing

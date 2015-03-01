@@ -14,5 +14,6 @@ GPWebCrawler.sublime-project
 GPWebCrawler.sublime-workspace
 *.prof
 *.hp
+*.json
 *.aux
 *.*~
