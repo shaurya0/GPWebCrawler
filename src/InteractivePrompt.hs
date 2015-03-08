@@ -1,21 +1,20 @@
 module InteractivePrompt where
 
 
-import System.Environment
 import System.Directory
 import System.FilePath
-import Data.List
+import Data.List as L
 import Network.URI as N
 import GetURLs
 import Text.Read
 import GPTracklists
 import GPShow
 import Data.Maybe
-import Control.Applicative
+import Data.Set as Set
 import Control.Monad
 import Data.Aeson
+import Data.Either
 import qualified Data.ByteString.Lazy as B
-import qualified Data.ByteString as S
 
 
 urlsBasePath :: FilePath
@@ -28,42 +27,61 @@ createGPShowFromURL url filePath = do
    let airDate = getAirDate url
    tracklist <- getTracklistFromURL url
    let gpShow = createGPShow airDate tracklist
-   case gpShow of  (Just x) -> B.writeFile filePath $ encode gpShow
-                   otherwise -> putStrLn "failed to write output"
+   case gpShow of  (Just _) -> B.writeFile filePath $ encode gpShow
+                   Nothing -> putStrLn "failed to write output"
 
 
 
 
 -- Fetches a multiple GP show tracklists from URLs in a file and write to file in JSON format
-createGPShowFromURLs :: FilePath -> FilePath -> IO [()]
-createGPShowFromURLs urlFilePath outputFilePath = do
-    urls <- readURLFile urlFilePath
-    let airDates = map getAirDate urls
+-- The urls in the file are assumed to have the format of 200 mixes per page from mixesdb.com
+-- e.g. http://bit.ly/1wgd2MX
+createGPShowFromCategoryURL :: String -> FilePath -> IO ()
+createGPShowFromCategoryURL url outputFilePath = do
+    urls <- readCategoryURL url
+    let airDates = L.map getAirDate urls
     tracklists <- mapM getTracklistFromURL urls
     let gpShows = createGPShows airDates tracklists
-    mapM (B.writeFile outputFilePath) $ map encode gpShows
-
+    let outputResult = B.concat $ L.map encode gpShows
+    B.writeFile outputFilePath outputResult
 
 
 -- Note: this function is not very efficient
-mergeGPShowJSONFiles :: FilePath -> FilePath -> FilePath -> IO [()]
+mergeGPShowJSONFiles :: FilePath -> FilePath -> FilePath -> IO ()
 mergeGPShowJSONFiles jsonFile1 jsonFile2 outputFilePath = do
     gpShows1 <- readGPShowJSONFile jsonFile1
+    if isJust gpShows1 then putStrLn "gpShows1 is just" else putStrLn "gpShows1 is nothing"
     gpShows2 <- readGPShowJSONFile jsonFile2
-    mapM (B.writeFile outputFilePath) $ map encode [gpShows1 ++ gpShows2]
+    if isJust gpShows2 then putStrLn "gpShows2 is just" else putStrLn "gpShows2 is nothing"
+
+    let mergedShows = Set.toList $ Set.fromList ([(fromJust gpShows1) ++ (fromJust gpShows2)])
+    let outputResult = B.concat $ L.map encode mergedShows
+    (B.writeFile outputFilePath) outputResult
+
+isLeft :: Either String a -> Bool
+isLeft (Left _ ) = True
+isLeft (Right _) = False
+
+getLeft :: Either String a -> String
+getLeft (Left m) = m
 
 
-readGPShowJSONFile :: FilePath -> IO([GPShow])
+
+readGPShowJSONFile :: FilePath -> IO(Maybe [GPShow])
 readGPShowJSONFile fileName = do
     contents <- B.readFile fileName
     let gpShows = decode contents :: Maybe [GPShow]
-    return $ fromJust gpShows
+    let e = eitherDecode contents :: Either String [GPShow]
+    if isLeft e then putStrLn $ getLeft e else putStrLn "all good"
+    return gpShows
+
 
 validateInput :: String -> Maybe Int
 validateInput args
         | isJust x && elem (fromJust x) [1..3] = x
         | otherwise = Nothing
             where x = readMaybe args :: Maybe Int
+
 
 printChoice :: Maybe Int -> IO ()
 printChoice (Just x) = do
@@ -82,13 +100,14 @@ dispatch 2 (Just (jsonFile1:jsonFile2:outputFilePath:_)) = do
                             mergeGPShowJSONFiles jsonFile1 jsonFile2 outputFilePath
                             putStrLn $ "Merged JSON files : " ++ jsonFile1 ++ ", " ++ jsonFile2 ++ " into output file " ++ outputFilePath
 
-dispatch 3 (Just (urlFilePath:outputFilePath:_)) = do
-                            createGPShowFromURLs urlFilePath outputFilePath
-                            putStrLn $ "Created JSON file with shows from url file : " ++ urlFilePath ++ " into output file " ++ outputFilePath
+dispatch 3 (Just (url:outputFilePath:_)) = do
+                            createGPShowFromCategoryURL url outputFilePath
+                            putStrLn $ "Created JSON file with shows from category url : " ++ url ++ " into output file " ++ outputFilePath
 dispatch _ Nothing = do putStrLn "No operation performed"
 
 
 data ArgType = InputFile | URL | OutputFile
+
 
 validateArg :: String -> ArgType -> IO(Bool)
 validateArg filePath InputFile = do
@@ -107,6 +126,13 @@ validateArg filePath OutputFile = do
 
 
 
+getPromptResults ::[String] -> [ArgType] -> IO(Maybe [String])
+getPromptResults args types = do
+                        validArgs <- zipWithM validateArg args types
+                        let predicate = and validArgs
+                        if predicate then return (Just args) else return Nothing
+
+
 
 -- todo: get rid of boilerplate
 getAdditionalArgs :: Int -> IO(Maybe [String])
@@ -115,10 +141,7 @@ getAdditionalArgs 1 = do
             url <- getLine
             putStrLn "Provide output file path"
             outputFilePath <- getLine
-            let args = [url, outputFilePath]
-            validArgs <- zipWithM validateArg args [URL, OutputFile]
-            let predicate = and validArgs
-            if predicate then return (Just args) else return Nothing
+            getPromptResults [url, outputFilePath] [URL, OutputFile]
 getAdditionalArgs 2 = do
             putStrLn "Provide filepath for the first JSON file"
             jsonFile1 <- getLine
@@ -126,16 +149,10 @@ getAdditionalArgs 2 = do
             jsonFile2 <- getLine
             putStrLn "Provide output file path"
             outputFilePath <- getLine
-            let args = [jsonFile1, jsonFile2, outputFilePath]
-            validArgs <- zipWithM validateArg args [InputFile, InputFile, OutputFile]
-            let predicate = and validArgs
-            if predicate then return (Just args) else return Nothing
+            getPromptResults [jsonFile1, jsonFile2, outputFilePath] [InputFile, InputFile, OutputFile]
 getAdditionalArgs 3 = do
-            putStrLn "Provide filepath for URL file"
-            urlFile <- getLine
+            putStrLn "Provide category url"
+            url <- getLine
             putStrLn "Provide output file path"
             outputFilePath <- getLine
-            let args = [urlFile, outputFilePath]
-            validArgs <- zipWithM validateArg args [InputFile, OutputFile]
-            let predicate = and validArgs
-            if predicate then return (Just args) else return Nothing
+            getPromptResults [url, outputFilePath] [URL, OutputFile]

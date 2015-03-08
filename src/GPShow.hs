@@ -1,17 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric     #-}
 
 module GPShow
 (
     GPShow(..),
-    jsonFile,
 ) where
 
-import Control.Applicative
-import Control.Monad
 import Data.Aeson
-
-jsonFile :: FilePath
-jsonFile = "/home/shaurya/Development/GPcrawler/data/gpshow.json"
+import GHC.Generics
 
 
 data GPShow =
@@ -19,20 +15,32 @@ data GPShow =
             , airDateMonth :: Int
             , airDateDay :: Int
             , showTracklist :: [String]
-            } deriving (Show)
+            } deriving (Show, Ord, Generic)
 
-instance FromJSON GPShow where
- parseJSON (Object v) =
-    GPShow <$> v .: "year"
-           <*> v .: "month"
-           <*> v .: "day"
-           <*> v .: "tracklist"
- parseJSON _ = mzero
+instance Eq GPShow where
+    (GPShow y1 m1 d1 _) == (GPShow y2 m2 d2 _) = (y1 == y2) && (m1 == m2 ) && (d1 == d2)
+
+instance FromJSON GPShow
+instance ToJSON GPShow
+
+toGPShowObject :: GPShow -> Object
+toGPShowObject show = undefined
+
+gpShowListToArray :: [GPShow] -> Array
+gpShowListToArray shows = Array $ map toGPShowObject shows
+
+-- instance FromJSON GPShow where
+--  parseJSON (Object v) =
+--     GPShow <$> v .: "year"
+--            <*> v .: "month"
+--            <*> v .: "day"
+--            <*> v .: "tracklist"
+--  parseJSON _ = mzero
 
 
-instance ToJSON GPShow where
-    toJSON (GPShow year month day tracklist) =
-        object[     "year" .= year
-                ,   "month" .= month
-                ,   "day" .= day
-                ,   "tracklist" .= tracklist ]
+-- instance ToJSON GPShow where
+--     toJSON (GPShow year month day tracklist) =
+--         object[     "year" .= year
+--                 ,   "month" .= month
+--                 ,   "day" .= day
+--                 ,   "tracklist" .= tracklist ]

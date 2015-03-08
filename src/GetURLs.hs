@@ -2,7 +2,7 @@ module GetURLs
 (
     getURLTags,
     openURL,
-    readURLFile,
+    readCategoryURL,
 ) where
 
 import Network.HTTP
@@ -41,12 +41,11 @@ getURLTags :: String -> IO [Tag String]
 getURLTags = (fmap parseTags . openURL)
 
 
-readURLFile :: FilePath -> IO [String]
-readURLFile filePath =  do
-                        inputURLs <- readFile filePath
-                        urlData <- mapM getURLTags $ lines inputURLs
-                        let tracklistURLs = map getTracklistURLs urlData
-                        return $ concat tracklistURLs
+readCategoryURL :: String -> IO [String]
+readCategoryURL url =  do
+                        urlData <- getURLTags url
+                        let tracklistURLs = getTracklistURLs urlData
+                        return tracklistURLs
 
 
 

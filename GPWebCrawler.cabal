@@ -24,6 +24,7 @@ executable GPWebCrawler
                        filepath,
                        MissingH,
                        regex-posix,
+                       containers,
                        split,
                        bytestring,
                        aeson,

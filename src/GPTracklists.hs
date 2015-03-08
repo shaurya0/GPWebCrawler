@@ -9,7 +9,7 @@ module GPTracklists
 import Text.HTML.TagSoup
 import Data.String.Utils
 import Text.Regex.Posix
-import GetURLs (openURL, getURLTags)
+import GetURLs
 import GPShow
 import Data.Maybe
 import Data.List
