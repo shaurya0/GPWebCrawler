@@ -13,7 +13,6 @@ import Data.Maybe
 import Data.Set as Set
 import Control.Monad
 import Data.Aeson
-import Data.Either
 import qualified Data.ByteString.Lazy as B
 
 
@@ -42,7 +41,7 @@ createGPShowFromCategoryURL url outputFilePath = do
     let airDates = L.map getAirDate urls
     tracklists <- mapM getTracklistFromURL urls
     let gpShows = createGPShows airDates tracklists
-    let outputResult = B.concat $ L.map encode gpShows
+    let outputResult = encode gpShows
     B.writeFile outputFilePath outputResult
 
 
@@ -50,20 +49,10 @@ createGPShowFromCategoryURL url outputFilePath = do
 mergeGPShowJSONFiles :: FilePath -> FilePath -> FilePath -> IO ()
 mergeGPShowJSONFiles jsonFile1 jsonFile2 outputFilePath = do
     gpShows1 <- readGPShowJSONFile jsonFile1
-    if isJust gpShows1 then putStrLn "gpShows1 is just" else putStrLn "gpShows1 is nothing"
     gpShows2 <- readGPShowJSONFile jsonFile2
-    if isJust gpShows2 then putStrLn "gpShows2 is just" else putStrLn "gpShows2 is nothing"
-
-    let mergedShows = Set.toList $ Set.fromList ([(fromJust gpShows1) ++ (fromJust gpShows2)])
-    let outputResult = B.concat $ L.map encode mergedShows
+    let mergedShows = Set.toList $ Set.fromList ((fromJust gpShows1) ++ (fromJust gpShows2))
+    let outputResult = encode mergedShows
     (B.writeFile outputFilePath) outputResult
-
-isLeft :: Either String a -> Bool
-isLeft (Left _ ) = True
-isLeft (Right _) = False
-
-getLeft :: Either String a -> String
-getLeft (Left m) = m
 
 
 
@@ -71,8 +60,6 @@ readGPShowJSONFile :: FilePath -> IO(Maybe [GPShow])
 readGPShowJSONFile fileName = do
     contents <- B.readFile fileName
     let gpShows = decode contents :: Maybe [GPShow]
-    let e = eitherDecode contents :: Either String [GPShow]
-    if isLeft e then putStrLn $ getLeft e else putStrLn "all good"
     return gpShows
 
 

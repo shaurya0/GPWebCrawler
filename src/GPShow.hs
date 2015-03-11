@@ -22,25 +22,3 @@ instance Eq GPShow where
 
 instance FromJSON GPShow
 instance ToJSON GPShow
-
-toGPShowObject :: GPShow -> Object
-toGPShowObject show = undefined
-
-gpShowListToArray :: [GPShow] -> Array
-gpShowListToArray shows = Array $ map toGPShowObject shows
-
--- instance FromJSON GPShow where
---  parseJSON (Object v) =
---     GPShow <$> v .: "year"
---            <*> v .: "month"
---            <*> v .: "day"
---            <*> v .: "tracklist"
---  parseJSON _ = mzero
-
-
--- instance ToJSON GPShow where
---     toJSON (GPShow year month day tracklist) =
---         object[     "year" .= year
---                 ,   "month" .= month
---                 ,   "day" .= day
---                 ,   "tracklist" .= tracklist ]
