@@ -13,8 +13,9 @@
     "build_systems":
     [
         {
-            "cmd": ["ls"],
-	    "working_dir": "${project_path}"
+            "cmd": ["cabal", "build"],
+    	    "working_dir": "${project_path}",
+            "name":"haskell_project_build"
         }
     ]
 }

@@ -20,6 +20,8 @@ executable GPWebCrawler
   ghc-options:         -Wall
   -- other-extensions:
   build-depends:       base >=4.6 ,
+                       url,
+                       cmdargs,
                        network,
                        network-uri,
                        filepath,
