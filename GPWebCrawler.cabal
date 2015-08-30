@@ -17,10 +17,11 @@ cabal-version:       >=1.10
 
 executable GPWebCrawler
   main-is:             Main.hs
-  ghc-options:         -Wall
+  ghc-options:         -Wall -O2 -threaded -rtsopts
   -- other-extensions:
   build-depends:       base >=4.6 ,
                        url,
+                       async,
                        cmdargs,
                        network,
                        network-uri,

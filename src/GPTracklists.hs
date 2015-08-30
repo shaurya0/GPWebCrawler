@@ -42,8 +42,8 @@ sanitizeTracklist :: Tracklist -> Tracklist
 sanitizeTracklist [] = []
 sanitizeTracklist (x:xs)
     | x == "\n" = sanitizeTracklist xs
-    | not (isInfixOf " - " x)  = sanitizeTracklist xs
-    | otherwise = (strip x) : sanitizeTracklist xs
+    | not (" - " `isInfixOf` x)  = sanitizeTracklist xs
+    | otherwise = strip x : sanitizeTracklist xs
 
 
 getTracklistFromTags :: Maybe [Tag String] -> Maybe Tracklist

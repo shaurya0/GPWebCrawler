@@ -21,16 +21,16 @@ openURL x = getResponseBody =<< simpleHTTP (getRequest x)
 getAttributes :: [Tag String] -> String -> [String]
 getAttributes [] _ = []
 getAttributes (x:xs) attrib
-    | isTagOpen x = [(fromAttrib attrib x)] ++ getAttributes xs attrib
+    | isTagOpen x = fromAttrib attrib x ++ getAttributes xs attrib
     | otherwise = getAttributes xs attrib
 
 
 assignPrefix :: [String] -> [String]
-assignPrefix xs = map (urlPrefix ++) xs
+assignPrefix = map (urlPrefix ++)
 
 
 filterURLs :: [String] -> [String]
-filterURLs xs = filter (isInfixOf "Gilles_Peterson_Worldwide") xs
+filterURLs = filter (isInfixOf "Gilles_Peterson_Worldwide")
 
 
 getTracklistURLs :: [Tag String] -> [String]
@@ -38,7 +38,7 @@ getTracklistURLs tags =  filterURLs $ assignPrefix $ getAttributes tags "href"
 
 
 getURLTags :: String -> IO [Tag String]
-getURLTags = (fmap parseTags . openURL)
+getURLTags = fmap parseTags . openURL
 
 
 readCategoryURL :: String -> IO [String]
