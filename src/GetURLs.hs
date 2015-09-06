@@ -21,7 +21,7 @@ openURL x = getResponseBody =<< simpleHTTP (getRequest x)
 getAttributes :: [Tag String] -> String -> [String]
 getAttributes [] _ = []
 getAttributes (x:xs) attrib
-    | isTagOpen x = fromAttrib attrib x ++ getAttributes xs attrib
+    | isTagOpen x = [fromAttrib attrib x] ++ (getAttributes xs attrib)
     | otherwise = getAttributes xs attrib
 
 

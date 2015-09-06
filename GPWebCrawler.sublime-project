@@ -8,7 +8,12 @@
         {
             "path": "./",
             "file_include_patterns": ["*.cabal"]
+        },
+        {
+            "path": "data",
+            "file_include_patterns": ["*.txt"]
         }
+
     ],
     "build_systems":
     [

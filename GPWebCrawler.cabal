@@ -20,6 +20,7 @@ executable GPWebCrawler
   ghc-options:         -Wall -O2 -threaded -rtsopts
   -- other-extensions:
   build-depends:       base >=4.6 ,
+                       attoparsec,
                        url,
                        async,
                        cmdargs,
